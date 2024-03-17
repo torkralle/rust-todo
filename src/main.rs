@@ -32,6 +32,18 @@ async fn add_todo(
         .finish())
 }
 
+#[post("/delete")]
+async fn delete_todo(
+    params: web::Form<DeleteParams>,
+    db: web::Data<r2d2::Pool<SqliteConnectionManager>>,
+) -> Result<HttpResponse, MyError> {
+    let conn = db.get()?;
+    conn.execute("DELETE FROM todo WHERE id=?", &[&params.id])?;
+    Ok(HttpResponse::SeeOther()
+        .header(header::LOCATION, "/")
+        .finish())
+}
+
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexTemplate {
@@ -96,6 +108,7 @@ async fn main() -> Result<(), actix_web::Error> {
         App::new()
             .service(index)
             .service(add_todo)
+            .service(delete_todo)
             .data(pool.clone())
     })
     .bind("0.0.0.0:8080")?
